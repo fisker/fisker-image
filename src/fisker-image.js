@@ -311,6 +311,10 @@
   // }
 
   function imageProcessor(file, options) {
+    getOrientation(file).then(function(x) {
+
+    console.log(x)
+    })
     options = assign({}, defaultOptions, options)
     var fileType = file.type
     var isImg = /^image\//.test(fileType)
