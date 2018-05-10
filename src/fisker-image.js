@@ -1,36 +1,46 @@
 ;(function(root, factory) {
   'use strict'
 
+  var root = Function('return this')()
+
   if (typeof define === 'function' && define.amd) {
-    define([], factory)
+    define([], function() {
+      return factory(root)
+    })
   } else if (typeof module === 'object' && module.exports) {
-    module.exports = factory()
+    module.exports = factory(root)
   } else {
-    root.fiskerImage = factory()
+    root.fiskerImage = factory(root)
   }
-})(this, function() {
+})(function(root) {
   'use strict'
 
-  var window = Function('return this')()
-  var atob = window.atob
-  var URL = window.URL || window.webkitURL
+  var atob = root.atob
+  var URL = root.URL || root.webkitURL
+  var document = root.document
+  var Image = root.Image
+  var FileReader = root.FileReader
 
   var defaultOptions = {
     maxSize: 1500,
     quality: 0.95
   }
 
-  var isArray = Array.isArray || function(x) {
-    return Object.prototype.toString.call(x) === '[object Array]'
-  }
-
-  var forEach = Array.prototype.forEach || function(iteratee) {
-    var i = 0
-    var len = this.length
-    for (; i < len; i++) {
-      iteratee.call(this, this[i], i, this)
+  var isArray =
+    Array.isArray ||
+    function(x) {
+      return Object.prototype.toString.call(x) === '[object Array]'
     }
-  }
+
+  var forEach =
+    Array.prototype.forEach ||
+    function(iteratee) {
+      var i = 0
+      var len = this.length
+      for (; i < len; i++) {
+        iteratee.call(this, this[i], i, this)
+      }
+    }
 
   var forIn = function(obj, iteratee) {
     var key
@@ -41,23 +51,23 @@
     }
   }
 
-  var assign = Object.assign || function(target) {
-    var sources = Array.prototype.slice.call(arguments, 1)
-    forEach.call(sources, function(source) {
-      forIn(source, function(value, key) {
-        target[key] = value
+  var assign =
+    Object.assign ||
+    function(target) {
+      var sources = Array.prototype.slice.call(arguments, 1)
+      forEach.call(sources, function(source) {
+        forIn(source, function(value, key) {
+          target[key] = value
+        })
       })
-    })
 
-    return target
-  }
+      return target
+    }
 
   var fileToImage = (function() {
-    function fileToUrl(file) {
-      return URL
-        ? Promise.resolve(URL.createObjectURL(file))
-        : fileToDataURL(file)
-    }
+    var reBlob = /^blob:/
+
+    var fileToUrl = URL ? URL.createObjectURL : fileToDataURL
 
     function fileToDataURL(file) {
       var fileReader = new FileReader()
@@ -75,9 +85,9 @@
       img.src = url
       return new Promise(function(resolve, reject) {
         img.onload = function() {
-          if (revoke !== false && URL && url.indexOf('blob:') === 0) {
+          if (revoke !== false && URL && reBlob.test(url)) {
             try {
-              URL && URL.revokeObjectURL(url)
+              URL.revokeObjectURL(url)
             } catch (err) {}
           }
           resolve(img)
@@ -87,7 +97,9 @@
     }
 
     function fileToImage(file) {
-      return fileToUrl(file).then(loadImage)
+      return Promise.resolve(file)
+        .then(fileToUrl)
+        .then(loadImage)
     }
 
     return fileToImage
@@ -96,14 +108,14 @@
   var getImageTransformInfo = (function() {
     var orientationTransforms = [
       // [flip-x, flip-y, deg]
-      [false, false, 0],   // 1
-      [true,  false, 0],   // 2
+      [false, false, 0], // 1
+      [true, false, 0], // 2
       [false, false, 180], // 3
-      [false, true,  0],   // 4
-      [true,  false, 90],  // 5
-      [false, false, 90],  // 6
-      [true,  false, -90], // 7
-      [false, false, -90]  // 8
+      [false, true, 0], // 4
+      [true, false, 90], // 5
+      [false, false, 90], // 6
+      [true, false, -90], // 7
+      [false, false, -90] // 8
     ]
 
     function getScaleSize(img, maxSize, rotate) {
@@ -129,9 +141,9 @@
       return scale
     }
 
-
     function getImageTransformInfo(img, orientation, maxSize) {
-      var transform = orientationTransforms[orientation - 1] || orientationTransforms[0]
+      var transform =
+        orientationTransforms[orientation - 1] || orientationTransforms[0]
       var rotated = Math.abs(transform[2]) === 90
 
       return {
@@ -150,7 +162,7 @@
     // https://github.com/dominictarr/exif-orientation-lite/blob/master/index.js
     function getOrientationFromBuffer(buffer) {
       var view = new DataView(buffer)
-      if (view.getUint16(0, false) !== 0xFFD8) {
+      if (view.getUint16(0, false) !== 0xffd8) {
         // not jpeg
         return
       }
@@ -160,20 +172,20 @@
       while (offset < length) {
         marker = view.getUint16(offset, false)
         offset += 2
-        if (marker === 0xFFE1) {
-          if (view.getUint32(offset += 2, false) !== 0x45786966) {
+        if (marker === 0xffe1) {
+          if (view.getUint32((offset += 2), false) !== 0x45786966) {
             return
           }
-          var little = view.getUint16(offset += 6, false) === 0x4949
+          var little = view.getUint16((offset += 6), false) === 0x4949
           offset += view.getUint32(offset + 4, little)
           var tags = view.getUint16(offset, little)
           offset += 2
           for (var i = 0; i < tags; i++) {
-            if (view.getUint16(offset + (i * 12), little) === 0x0112) {
-              return view.getUint16(offset + (i * 12) + 8, little)
+            if (view.getUint16(offset + i * 12, little) === 0x0112) {
+              return view.getUint16(offset + i * 12 + 8, little)
             }
           }
-        } else if ((marker & 0xFF00) !== 0xFF00) {
+        } else if ((marker & 0xff00) !== 0xff00) {
           break
         } else {
           offset += view.getUint16(offset, false)
@@ -200,7 +212,7 @@
     return getOrientationFromFile
   })()
 
-  var imageToCanvas = (function(){
+  var imageToCanvas = (function() {
     // https://github.com/buunguyen/exif-orient/blob/master/exif-orient.js
     function rotateContext(context, deg) {
       var canvas = context.canvas
@@ -222,14 +234,8 @@
       var width = canvas.width
       var height = canvas.height
 
-      context.translate(
-        x ? width : 0,
-        y ? height : 0
-      )
-      context.scale(
-        x ? -1 : 1,
-        y ? -1 : 1
-      )
+      context.translate(x ? width : 0, y ? height : 0)
+      context.scale(x ? -1 : 1, y ? -1 : 1)
     }
 
     function imageToCanvas(img, transform) {
@@ -274,12 +280,9 @@
         arr[i] = bin.charCodeAt(i)
       })
 
-      return new Blob(
-        [arr],
-        {
-          type: type
-        }
-      )
+      return new Blob([arr], {
+        type: type
+      })
     }
 
     function canvasToBlob(canvas, type, quality) {
@@ -295,7 +298,6 @@
     }
 
     return canvasToBlob
-
   })()
 
   // function blobTofile(blob, name, type) {
@@ -310,14 +312,12 @@
   //   })
   // }
 
-  function imageProcessor(file, options) {
-    getOrientation(file).then(function(x) {
+  var reImage = /^image\//
 
-    console.log(x)
-    })
+  function imageProcessor(file, options) {
     options = assign({}, defaultOptions, options)
     var fileType = file.type
-    var isImg = /^image\//.test(fileType)
+    var isImg = reImage.test(fileType)
     var promise = Promise.resolve(file)
 
     if (!isImg) {
@@ -330,23 +330,34 @@
     var transform
     var orientation
     var orignalImg
+
     promise = promise
       .then(function() {
-        return isJpeg ? getOrientation(file)
-          .then(function(result) {
-            return orientation = result
-          }) : 0
+        return isJpeg
+          ? getOrientation(file).then(function(result) {
+              return (orientation = result)
+            })
+          : 0
       })
       .then(function() {
         return fileToImage(file).then(function(img) {
-          return orignalImg = img
+          return (orignalImg = img)
         })
       })
       .then(function() {
-        return transform = getImageTransformInfo(orignalImg, orientation, options.maxSize)
+        return (transform = getImageTransformInfo(
+          orignalImg,
+          orientation,
+          options.maxSize
+        ))
       })
       .then(function() {
-        if (transform.flipX || transform.flipY || transform.deg || transform.scale !== 1) {
+        if (
+          transform.flipX ||
+          transform.flipY ||
+          transform.deg ||
+          transform.scale !== 1
+        ) {
           var canvas = imageToCanvas(orignalImg, transform)
           return canvasToBlob(canvas, fileType, options.quality)
         }
@@ -356,7 +367,6 @@
 
     return promise
   }
-
 
   return imageProcessor
 })
