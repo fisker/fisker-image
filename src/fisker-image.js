@@ -1,4 +1,4 @@
-;(function(root, factory) {
+;(function(factory) {
   'use strict'
 
   var root = Function('return this')()
