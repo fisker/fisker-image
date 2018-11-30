@@ -1,3 +1,4 @@
 /test/upload
 /node_modules
 /test/node/output
+/test/browser

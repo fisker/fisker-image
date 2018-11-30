@@ -1,4 +1,25 @@
 {
+  "name": "fisker-image",
+  "version": "1.0.0",
+  "description": "image processor",
+  "license": "MIT",
+  "repository": "fisker/fisker-image",
+  "author": {
+    "name": "fisker Cheung",
+    "email": "lionkay@gmail.com",
+    "url": "https://github.com/fisker"
+  },
+  "index": "src/fisker-image.js",
+  "files": [
+    "src/fisker-image.js"
+  ],
+  "keywords": [
+    "compress",
+    "image",
+    "img",
+    "minify",
+    "optimize"
+  ],
   "devDependencies": {
     "es6-promise": "^4.2.2",
     "jquery": "1"
