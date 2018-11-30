@@ -9,7 +9,7 @@
     "email": "lionkay@gmail.com",
     "url": "https://github.com/fisker"
   },
-  "index": "src/fisker-image.js",
+  "main": "src/fisker-image.js",
   "files": [
     "src/fisker-image.js"
   ],
