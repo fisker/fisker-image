@@ -1,3 +1,6 @@
+# this project is moved to https://github.com/fisker/fei.js
+
+
 Promise
 
 https://unpkg.com/es6-promise@4.2.5/dist/es6-promise.auto.min.js
